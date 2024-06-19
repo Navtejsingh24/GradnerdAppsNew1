@@ -91,6 +91,49 @@ const goldRate = (async (req, res) => {
     }
 });
 
+const calculateGoldPrice = (async (req, res) => {
+    try {
+        const { carat, grams } = req.body;
+
+        const docRef = db.collection('goldRates').doc('monthlyData');
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            return res.status(404).send({ error: 'No data found' });
+        }
+
+        const data = doc.data();
+        const cityData = data.GoldHistory.find(item => item.city.toLowerCase() === req.body.city.toLowerCase());
+
+        if (!cityData) {
+            return res.status(404).send({ error: `No data found for city: ${req.params.city}` });
+        }
+
+        const historicalData = cityData.historicalData;
+
+        if (historicalData.length < 2) {
+            return res.status(404).send({ error: 'Not enough data available' });
+        }
+
+        const todayEntry = historicalData[0];
+        let todayPricePerGram;
+
+        if (carat === "24K") {
+            todayPricePerGram = parseInt(todayEntry.TenGram24K) / 10;
+        } else if (carat === "22K") {
+            todayPricePerGram = parseInt(todayEntry.TenGram22K) / 10;
+        } else {
+            return res.status(400).send({ error: 'Invalid carat value. Only 24K and 22K are supported.' });
+        }
+
+        const totalPrice = todayPricePerGram * grams;
+
+        res.status(200).send({ totalPrice });
+    } catch (error) {
+        console.error('Error calculating gold price:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
 
 
-module.exports = { saveUserData, goldRate };
+module.exports = { saveUserData, goldRate, calculateGoldPrice };
