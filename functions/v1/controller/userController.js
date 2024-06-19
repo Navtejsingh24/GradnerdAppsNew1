@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
 const db = admin.firestore();
+const axios = require("axios")
 
 // const viewFunction = async (req, res) => {
 //     res.send("hello")
@@ -35,7 +36,15 @@ const saveUserData = async (req, res) => {
 
 const goldRate = (async (req, res) => {
     try {
-        const city = req.params.city;
+        let city = req.params.city;
+        if (city && typeof city === 'string') {
+            if (city === city.toUpperCase()) {
+                city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+            } else {
+                city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+            }
+            city = city.toLowerCase() === 'new delhi' || city.toLowerCase() === 'delhi' ? 'New-delhi' : city;
+        }
         const docRef = db.collection('goldRates').doc('monthlyData');
         const doc = await docRef.get();
 
@@ -94,6 +103,15 @@ const goldRate = (async (req, res) => {
 const calculateGoldPrice = (async (req, res) => {
     try {
         const { carat, grams } = req.body;
+        let city = req.body.city;
+        if (city && typeof city === 'string') {
+            if (city === city.toUpperCase()) {
+                city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+            } else {
+                city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+            }
+            city = city.toLowerCase() === 'new delhi' || city.toLowerCase() === 'delhi' ? 'New-delhi' : city;
+        }
 
         const docRef = db.collection('goldRates').doc('monthlyData');
         const doc = await docRef.get();
@@ -103,10 +121,10 @@ const calculateGoldPrice = (async (req, res) => {
         }
 
         const data = doc.data();
-        const cityData = data.GoldHistory.find(item => item.city.toLowerCase() === req.body.city.toLowerCase());
+        const cityData = data.GoldHistory.find(item => item.city.toLowerCase() === city.toLowerCase());
 
         if (!cityData) {
-            return res.status(404).send({ error: `No data found for city: ${req.params.city}` });
+            return res.status(404).send({ error: `No data found for city: ${city}` });
         }
 
         const historicalData = cityData.historicalData;
@@ -136,4 +154,33 @@ const calculateGoldPrice = (async (req, res) => {
 });
 
 
-module.exports = { saveUserData, goldRate, calculateGoldPrice };
+const autoCompleteCityName = (async (req, res) => {
+    const { text } = req.query;
+
+    if (!text) {
+        return res.status(400).send({ error: 'Query parameter "text" is required' });
+    }
+
+    try {
+        const response = await axios.get(`https://api.geoapify.com/v1/geocode/autocomplete`, {
+            params: {
+                text,
+                type: 'city',
+                filter: 'countrycode:in',
+                apiKey: '5eac308e89254b77ae9f7ee07d7533ea'
+            }
+        });
+
+        const features = response.data.features;
+        const cityNames = features.map(feature => feature.properties.city || feature.properties.address_line1);
+
+        res.status(200).send(cityNames);
+    } catch (error) {
+        console.error('Error fetching city names:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
+
+
+
+module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName };
