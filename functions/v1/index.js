@@ -11,6 +11,7 @@ const axios = require("axios")
 // const authMiddleware = require("../middlewares/auth");
 
 const app = express();
+app.use(express.json());
 app.use(cors({ origin: true }));
 const db = admin.firestore();
 app.get('/fetchAndSaveGoldData', async (req, res) => {

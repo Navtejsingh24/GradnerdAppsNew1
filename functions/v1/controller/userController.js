@@ -17,8 +17,6 @@ const saveUserData = async (req, res) => {
         if (!name || !phone || !id) {
             return res.status(400).send({ error: "Name, phone, and valid UID are required fields" });
         }
-
-
         const userData = {
             name,
             phone,
@@ -52,31 +50,39 @@ const goldRate = (async (req, res) => {
             return res.status(404).send({ error: `No data found for city: ${city}` });
         }
 
-        const transformedData = cityData.historicalData.map((entry, index, arr) => {
-            const yesterdayEntry = arr[index - 1] || { TenGram24K: entry.TenGram24K }; // Use today's value if yesterday's data is not available
-            const gram1Today = parseInt(entry.TenGram24K) / 10;
-            const gram1Yesterday = parseInt(yesterdayEntry.TenGram24K) / 10;
-            const change1Gram = gram1Today - gram1Yesterday;
+        const historicalData = cityData.historicalData;
 
-            const gram8Today = gram1Today * 8;
-            const gram8Yesterday = gram1Yesterday * 8;
-            const change8Gram = gram8Today - gram8Yesterday;
+        if (historicalData.length < 2) {
+            return res.status(404).send({ error: 'Not enough data available' });
+        }
 
-            return [
-                {
-                    gram: 1,
-                    today: gram1Today,
-                    yesterday: gram1Yesterday,
-                    change: change1Gram
-                },
-                {
-                    gram: 8,
-                    today: gram8Today,
-                    yesterday: gram8Yesterday,
-                    change: change8Gram
-                }
-            ];
-        }).flat();
+        const todayEntry = historicalData[0];
+        const yesterdayEntry = historicalData[1];
+
+        // For TenGram24K
+        const todayPrice24K = parseInt(todayEntry.TenGram24K);
+        const yesterdayPrice24K = parseInt(yesterdayEntry.TenGram24K);
+        const change24K = todayPrice24K - yesterdayPrice24K;
+
+        // For TenGram22K
+        const todayPrice22K = parseInt(todayEntry.TenGram22K);
+        const yesterdayPrice22K = parseInt(yesterdayEntry.TenGram22K);
+        const change22K = todayPrice22K - yesterdayPrice22K;
+
+        const transformedData = [
+            {
+                Carat: "24K",
+                gram: 1,
+                Today: todayPrice24K / 10,
+                change: change24K / 10
+            },
+            {
+                Carat: "22K",
+                gram: 1,
+                Today: todayPrice22K / 10,
+                change: change22K / 10
+            }
+        ];
 
         res.status(200).send(transformedData);
     } catch (error) {
@@ -84,4 +90,7 @@ const goldRate = (async (req, res) => {
         res.status(500).send({ error: 'Internal server error' });
     }
 });
+
+
+
 module.exports = { saveUserData, goldRate };
