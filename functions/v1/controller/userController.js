@@ -100,19 +100,19 @@ const goldRate = (async (req, res) => {
     }
 });
 
-const calculateGoldPrice = (async (req, res) => {
+const calculateGoldPrice = async (req, res) => {
     try {
+        const userId = "user"
         const { carat, grams } = req.body;
         let city = req.body.city;
+
+        // Normalize city name
         if (city && typeof city === 'string') {
-            if (city === city.toUpperCase()) {
-                city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
-            } else {
-                city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
-            }
+            city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
             city = city.toLowerCase() === 'new delhi' || city.toLowerCase() === 'delhi' ? 'New-delhi' : city;
         }
 
+        // Fetch gold rates
         const docRef = db.collection('goldRates').doc('monthlyData');
         const doc = await docRef.get();
 
@@ -146,12 +146,64 @@ const calculateGoldPrice = (async (req, res) => {
 
         const totalPrice = todayPricePerGram * grams;
 
+        // Generate unique ID and timestamp
+        const timestamp = new Date().getTime();
+        const uniqueId = `${userId}_${timestamp}`;
+
+        // Prepare the history data
+        const historyData = {
+            userId,
+            carat,
+            grams,
+            city,
+            totalPrice,
+            pricePerGram: todayPricePerGram,
+            timestamp
+        };
+
+        // Save the history data into a new collection
+        const historyRef = await db.collection('goldPriceHistory').add(historyData);
+        const historyId = historyRef.id;
+
+        // Optionally, store the last calculated price ID in the user's document
+        // await db.collection('users').doc(userId).update({
+        //     lastCalculatedPriceId: historyId,
+        // });
+
         res.status(200).send({ totalPrice });
     } catch (error) {
         console.error('Error calculating gold price:', error);
         res.status(500).send({ error: 'Internal server error' });
     }
-});
+};
+
+const getGoldPriceHistory = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).send({ error: 'User ID is required' });
+        }
+
+        const historyRef = db.collection('goldPriceHistory');
+        const snapshot = await historyRef.where('userId', '==', userId).get();
+
+        if (snapshot.empty) {
+            return res.status(404).send({ error: 'No history found for this user' });
+        }
+
+        const historyData = [];
+        snapshot.forEach(doc => {
+            historyData.push({ id: doc.id, ...doc.data() });
+        });
+
+        res.status(200).send({ history: historyData });
+    } catch (error) {
+        console.error('Error fetching gold price history:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+};
+
 
 
 const autoCompleteCityName = (async (req, res) => {
@@ -183,4 +235,4 @@ const autoCompleteCityName = (async (req, res) => {
 
 
 
-module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName };
+module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory };
