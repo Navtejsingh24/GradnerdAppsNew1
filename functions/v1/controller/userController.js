@@ -33,6 +33,63 @@ const saveUserData = async (req, res) => {
     }
 };
 
+const getUserData = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate the ID
+        if (!id) {
+            return res.status(400).send({ error: "User ID is required" });
+        }
+
+        const userDoc = await db.collection('users').doc(id).get();
+
+        if (!userDoc.exists) {
+            return res.status(404).send({ error: "User not found" });
+        }
+
+        res.status(200).send(userDoc.data());
+    } catch (error) {
+        console.error("Error getting user data:", error);
+        res.status(500).send({ error: "Internal server error" });
+    }
+};
+
+const updateUserData = async (req, res) => {
+    try {
+
+        const { id, name } = req.body;
+
+        // Validate the ID
+        if (!id) {
+            return res.status(400).send({ error: "User ID is required" });
+        }
+
+        // Get the user document
+        const userDoc = db.collection('users').doc(id);
+
+        // Check if the user exists
+        const user = await userDoc.get();
+
+        if (!user.exists) {
+            return res.status(404).send({ error: "User not found" });
+        }
+
+        // Prepare the update data
+        const updateData = {};
+        if (name) updateData.name = name;
+
+        // Update the user document
+        await userDoc.update(updateData);
+
+        res.status(200).send({ message: "User data updated successfully" });
+    } catch (error) {
+        console.error("Error updating user data:", error);
+        res.status(500).send({ error: "Internal server error" });
+    }
+};
+
+
 
 const goldRate = (async (req, res) => {
     try {
@@ -235,4 +292,4 @@ const autoCompleteCityName = (async (req, res) => {
 
 
 
-module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory };
+module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData };
