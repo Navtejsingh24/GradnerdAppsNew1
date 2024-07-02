@@ -322,4 +322,4 @@ const autoCompleteCityName = (async (req, res) => {
 
 
 
-module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData, checkPhoneNumberExists };
+module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData };
