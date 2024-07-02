@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router()
-const { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData } = require("../controller/userController");
+const { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData, checkPhoneNumberExists } = require("../controller/userController");
 
 router.route("/create-user").post(saveUserData)
 router.route("/getCityData/:city").get(goldRate)
@@ -9,6 +9,7 @@ router.route("/autocomplete-city").get(autoCompleteCityName)
 router.route("/get-history/:userId").get(getGoldPriceHistory)
 router.route("/get-user/:id").get(getUserData)
 router.route("/update-profile").put(updateUserData)
+router.route("/isnumber-exist").get(checkPhoneNumberExists)
 // router.route("/view").get(viewFunction)
 
 

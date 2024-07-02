@@ -55,6 +55,31 @@ const getUserData = async (req, res) => {
     }
 };
 
+const checkPhoneNumberExists = async (req, res) => {
+    try {
+        const { phone } = req.body;
+
+        // Validate the phone number
+        if (!phone) {
+            return res.status(400).send({ error: "Phone number is required" });
+        }
+
+        const querySnapshot = await db.collection('users')
+            .where('phone', '==', phone)
+            .get();
+
+        if (querySnapshot.empty) {
+            return res.status(404).send({ error: "Phone number not found" });
+        }
+
+        res.status(200).send({ message: "Phone number already exists" });
+    } catch (error) {
+        console.error("Error checking phone number:", error);
+        res.status(500).send({ error: "Internal server error" });
+    }
+};
+
+
 const updateUserData = async (req, res) => {
     try {
 
@@ -292,4 +317,4 @@ const autoCompleteCityName = (async (req, res) => {
 
 
 
-module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData };
+module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData, checkPhoneNumberExists };
