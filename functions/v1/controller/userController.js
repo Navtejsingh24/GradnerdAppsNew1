@@ -9,15 +9,20 @@ const axios = require("axios")
 const saveUserData = async (req, res) => {
     try {
         const { name, phone, email } = req.body;
+        const id = req.user?.uid || "test-user";
 
-        // Get the authenticated user's UID using optional chaining
-        // req.user?.uid;
-        const id = "test-user"
-
-        // Validate required fields and UID
         if (!name || !phone || !id) {
             return res.status(400).send({ error: "Name, phone, and valid UID are required fields" });
         }
+
+        const phoneQuerySnapshot = await db.collection('users')
+            .where('phone', '==', phone)
+            .get();
+
+        if (!phoneQuerySnapshot.empty) {
+            return res.status(409).send({ error: "Phone number already exists" });
+        }
+
         const userData = {
             name,
             phone,
@@ -33,11 +38,11 @@ const saveUserData = async (req, res) => {
     }
 };
 
+
 const getUserData = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Validate the ID
         if (!id) {
             return res.status(400).send({ error: "User ID is required" });
         }
@@ -55,29 +60,29 @@ const getUserData = async (req, res) => {
     }
 };
 
-const checkPhoneNumberExists = async (req, res) => {
-    try {
-        const { phone } = req.body;
+// const checkPhoneNumberExists = async (req, res) => {
+//     try {
+//         const { phone } = req.body;
 
-        // Validate the phone number
-        if (!phone) {
-            return res.status(400).send({ error: "Phone number is required" });
-        }
+//         // Validate the phone number
+//         if (!phone) {
+//             return res.status(400).send({ error: "Phone number is required" });
+//         }
 
-        const querySnapshot = await db.collection('users')
-            .where('phone', '==', phone)
-            .get();
+//         const querySnapshot = await db.collection('users')
+//             .where('phone', '==', phone)
+//             .get();
 
-        if (querySnapshot.empty) {
-            return res.status(404).send({ error: "Phone number not found" });
-        }
+//         if (querySnapshot.empty) {
+//             return res.status(404).send({ error: "Phone number not found" });
+//         }
 
-        res.status(200).send({ message: "Phone number already exists" });
-    } catch (error) {
-        console.error("Error checking phone number:", error);
-        res.status(500).send({ error: "Internal server error" });
-    }
-};
+//         res.status(200).send({ message: "Phone number already exists" });
+//     } catch (error) {
+//         console.error("Error checking phone number:", error);
+//         res.status(500).send({ error: "Internal server error" });
+//     }
+// };
 
 
 const updateUserData = async (req, res) => {
