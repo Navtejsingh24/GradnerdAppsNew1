@@ -9,7 +9,7 @@ router.route("/autocomplete-city").get(autoCompleteCityName)
 router.route("/get-history/:userId").get(getGoldPriceHistory)
 router.route("/get-user/:id").get(getUserData)
 router.route("/update-profile").put(updateUserData)
-router.route("/isnumber-exist").get(checkPhoneNumberExists)
+// router.route("/isnumber-exist").get(checkPhoneNumberExists)
 // router.route("/view").get(viewFunction)
 
 
