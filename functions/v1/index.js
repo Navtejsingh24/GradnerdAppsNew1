@@ -41,6 +41,7 @@ app.post("/user/create-user", async (req, res) => {
         const { name, phone, email } = req.body;
         // const id = req.user?.uid || "test-user";
         const userId = req.user?.uid || phone;
+        let isActive = false
 
         if (!name || !phone || !userId) {
             return res.status(400).send({ error: "Name, phone, and valid UID are required fields" });
@@ -57,7 +58,8 @@ app.post("/user/create-user", async (req, res) => {
             name,
             phone,
             userId,
-            email: email || null
+            email: email || null,
+            isActive
         };
 
         await db.collection('users').doc(userId).set(userData);
