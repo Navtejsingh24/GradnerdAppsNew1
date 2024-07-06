@@ -9,7 +9,7 @@ const axios = require("axios")
 const cron = require('node-cron');
 
 // Middlewares
-// const authMiddleware = require("../middlewares/auth");
+const authMiddleware = require("./middlewares/auth");
 
 const app = express();
 app.use(express.json());
@@ -35,11 +35,45 @@ const fetchAndSaveGoldData = async () => {
 };
 
 cron.schedule('0 10 * * *', fetchAndSaveGoldData);
-app.get("/test", async (req, res) => {
-    res.send("hiiiii")
+
+app.post("/user/create-user", async (req, res) => {
+    try {
+        const { name, phone, email } = req.body;
+        // const id = req.user?.uid || "test-user";
+        const userId = req.user?.uid || phone;
+
+        if (!name || !phone || !userId) {
+            return res.status(400).send({ error: "Name, phone, and valid UID are required fields" });
+        }
+        const phoneQuerySnapshot = await db.collection('users')
+            .where('phone', '==', phone)
+            .get();
+
+        if (!phoneQuerySnapshot.empty) {
+            return res.status(409).send({ error: "Phone number already exists" });
+        }
+
+        const userData = {
+            name,
+            phone,
+            userId,
+            email: email || null
+        };
+
+        await db.collection('users').doc(userId).set(userData);
+        res.status(200).send({ message: "User data saved successfully" });
+    } catch (error) {
+        console.error("Error saving user data:", error);
+        res.status(500).send({ error: "Internal server error" });
+    }
+
 })
+
+
+
+app.use(authMiddleware);
 app.use("/user", require('./routes/userRoute'))
-// app.use(authMiddleware);
+
 
 app.use((err, req, res, next) => {
     res.status(err.statusCode || 500).send(err.message || "Unexpected error!");

@@ -6,48 +6,16 @@ const axios = require("axios")
 //     res.send("hello")
 // };
 
-const saveUserData = async (req, res) => {
-    try {
-        const { name, phone, email } = req.body;
-        const id = req.user?.uid || "test-user";
-
-        if (!name || !phone || !id) {
-            return res.status(400).send({ error: "Name, phone, and valid UID are required fields" });
-        }
-
-        const phoneQuerySnapshot = await db.collection('users')
-            .where('phone', '==', phone)
-            .get();
-
-        if (!phoneQuerySnapshot.empty) {
-            return res.status(409).send({ error: "Phone number already exists" });
-        }
-
-        const userData = {
-            name,
-            phone,
-            id,
-            email: email || null
-        };
-
-        await db.collection('users').doc(id).set(userData);
-        res.status(200).send({ message: "User data saved successfully" });
-    } catch (error) {
-        console.error("Error saving user data:", error);
-        res.status(500).send({ error: "Internal server error" });
-    }
-};
-
-
 const getUserData = async (req, res) => {
     try {
-        const { id } = req.params;
 
-        if (!id) {
+        // const { id } = req.params;
+        const userId = req.user?.uid;
+        if (!userId) {
             return res.status(400).send({ error: "User ID is required" });
         }
 
-        const userDoc = await db.collection('users').doc(id).get();
+        const userDoc = await db.collection('users').doc(userId).get();
 
         if (!userDoc.exists) {
             return res.status(404).send({ error: "User not found" });
@@ -88,15 +56,16 @@ const getUserData = async (req, res) => {
 const updateUserData = async (req, res) => {
     try {
 
-        const { id, name } = req.body;
+        const { name } = req.body;
+        const userId = req.user?.uid || "test-user";
 
         // Validate the ID
-        if (!id) {
+        if (!userId) {
             return res.status(400).send({ error: "User ID is required" });
         }
 
         // Get the user document
-        const userDoc = db.collection('users').doc(id);
+        const userDoc = db.collection('users').doc(userId);
 
         // Check if the user exists
         const user = await userDoc.get();
@@ -189,7 +158,8 @@ const goldRate = (async (req, res) => {
 
 const calculateGoldPrice = async (req, res) => {
     try {
-        const userId = "user"
+        // const userId = "user"
+        const userId = req.user?.uid || "test-user";
         const { carat, grams } = req.body;
         let city = req.body.city;
 
@@ -266,8 +236,8 @@ const calculateGoldPrice = async (req, res) => {
 
 const getGoldPriceHistory = async (req, res) => {
     try {
-        const { userId } = req.params;
-
+        // const { userId } = req.params;
+        const userId = req.user?.uid || "test-user";
         if (!userId) {
             return res.status(400).send({ error: 'User ID is required' });
         }
@@ -322,4 +292,4 @@ const autoCompleteCityName = (async (req, res) => {
 
 
 
-module.exports = { saveUserData, goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData };
+module.exports = { goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData };
