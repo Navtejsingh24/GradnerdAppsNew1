@@ -8,60 +8,29 @@ const axios = require("axios")
 
 const getUserData = async (req, res) => {
     try {
-        const phoneNumber = req.user?.phoneNumber || "+919997575502";
-        console.log(phoneNumber)
         const userId = req.user?.uid;
-        console.log(userId)
-        // Validate phone number
-        if (!phoneNumber) {
-            return res.status(400).send({ error: "Phone number is required" });
-        }
 
         // Validate user ID
         if (!userId) {
             return res.status(400).send({ error: "User ID is required" });
         }
 
-        // Check if there is a user with the provided phone number and isActive is false
-        const phoneQuerySnapshot = await db.collection('users')
-            .where('phone', '==', phoneNumber)
-            .where('isActive', '==', false)
-            .get();
+        // Get the user document
+        const userDoc = await db.collection('users').doc(userId).get();
 
-        if (phoneQuerySnapshot.empty) {
-            // If no such user with isActive false, just return the user details
-            const userDoc = await db.collection('users').doc(userId).get();
-            if (!userDoc.exists) {
-                return res.status(404).send({ error: "User not found" });
-            }
-            return res.status(200).send(userDoc.data());
-        }
-
-        // Move the user document to a new location identified by userId and set isActive to true
-        const userDoc = phoneQuerySnapshot.docs[0];
-        const userData = userDoc.data();
-
-        await db.collection('users').doc(userId).set({
-            ...userData,
-            userId: userId,  // Update userID if needed
-            isActive: true   // Update isActive status
-        });
-
-        // Optionally, you can delete the old document if needed
-        await userDoc.ref.delete();
-
-        // Retrieve and return the updated user document
-        const updatedUserDoc = await db.collection('users').doc(userId).get();
-        if (!updatedUserDoc.exists) {
+        // Check if the user exists
+        if (!userDoc.exists) {
             return res.status(404).send({ error: "User not found" });
         }
 
-        res.status(200).send(updatedUserDoc.data());
+        // Send the user data
+        res.status(200).send(userDoc.data());
     } catch (error) {
         console.error("Error getting user data:", error);
         res.status(500).send({ error: "Internal server error" });
     }
 };
+
 
 
 // const checkPhoneNumberExists = async (req, res) => {
@@ -91,9 +60,8 @@ const getUserData = async (req, res) => {
 
 const updateUserData = async (req, res) => {
     try {
-
-        const { name } = req.body;
-        const userId = req.user?.uid || "test-user";
+        const userId = req.user?.uid;
+        const { name, email } = req.body;
 
         // Validate the ID
         if (!userId) {
@@ -106,18 +74,20 @@ const updateUserData = async (req, res) => {
         // Check if the user exists
         const user = await userDoc.get();
 
-        if (!user.exists) {
-            return res.status(404).send({ error: "User not found" });
-        }
-
         // Prepare the update data
         const updateData = {};
         if (name) updateData.name = name;
+        if (email) updateData.email = email;
 
-        // Update the user document
-        await userDoc.update(updateData);
-
-        res.status(200).send({ message: "User data updated successfully" });
+        if (!user.exists) {
+            // Create a new user profile if the user does not exist
+            await userDoc.set(updateData);
+            res.status(201).send({ message: "User profile created successfully" });
+        } else {
+            // Update the user document if the user already exists
+            await userDoc.update(updateData);
+            res.status(200).send({ message: "User data updated successfully" });
+        }
     } catch (error) {
         console.error("Error updating user data:", error);
         res.status(500).send({ error: "Internal server error" });
