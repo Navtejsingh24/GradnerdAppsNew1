@@ -6,7 +6,7 @@ const axios = require("axios")
 //     res.send("hello")
 // };
 
-const getUserData = async (req, res) => {
+const getOrUpdateUserData = async (req, res) => {
     try {
         const userId = req.user?.uid;
 
@@ -16,20 +16,45 @@ const getUserData = async (req, res) => {
         }
 
         // Get the user document
-        const userDoc = await db.collection('users').doc(userId).get();
+        const userDoc = db.collection('users').doc(userId);
+        const user = await userDoc.get();
 
-        // Check if the user exists
-        if (!userDoc.exists) {
-            return res.status(404).send({ error: "User not found" });
+        const { name, email } = req.body;
+
+        if (!user.exists) {
+            // If user doesn't exist, create a new user profile
+            const newUser = {
+                userId: userId,
+                name: name || "",
+                email: email || "",
+                isActive: true  // or any other default fields you want to set
+            };
+            await userDoc.set(newUser);
+            return res.status(201).send(newUser);
+        } else {
+            if (name || email) {
+                // If name or email is provided, update the user data
+                const updateData = {};
+                if (name) updateData.name = name;
+                if (email) updateData.email = email;
+
+                // Update the user document
+                await userDoc.update(updateData);
+
+                // Retrieve and return the updated user document
+                const updatedUserDoc = await userDoc.get();
+                return res.status(200).send(updatedUserDoc.data());
+            } else {
+                // If no name or email is provided, return the user data
+                return res.status(200).send(user.data());
+            }
         }
-
-        // Send the user data
-        res.status(200).send(userDoc.data());
     } catch (error) {
-        console.error("Error getting user data:", error);
+        console.error("Error handling user data:", error);
         res.status(500).send({ error: "Internal server error" });
     }
 };
+
 
 
 
@@ -298,4 +323,4 @@ const autoCompleteCityName = (async (req, res) => {
 
 
 
-module.exports = { goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getUserData, updateUserData };
+module.exports = { goldRate, calculateGoldPrice, autoCompleteCityName, getGoldPriceHistory, getOrUpdateUserData, updateUserData };
